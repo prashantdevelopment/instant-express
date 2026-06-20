@@ -1,0 +1,47 @@
+{
+  "name": "instant-express",
+  "version": "1.0.0",
+  "description": "CLI tool to instantly generate a production-ready Express.js + MongoDB backend with optional JWT authentication, folder structure, and auto dependency installation",
+  "main": "index.js",
+  "bin": {
+    "instant-express": "index.js"
+  },
+  "type": "module",
+  "files": [
+    "index.js",
+    "templates/",
+    "README.md"
+  ],
+  "keywords": [
+    "cli",
+    "express",
+    "mongodb",
+    "mongoose",
+    "boilerplate",
+    "generator",
+    "backend",
+    "nodejs",
+    "scaffold",
+    "starter",
+    "jwt",
+    "authentication",
+    "rest-api",
+    "api",
+    "express-generator",
+    "create-backend",
+    "project-generator"
+  ],
+  "author": "Prashant <imprashant16006@gmail.com> (https://github.com/prashantdevelopment)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prashantdevelopment/instant-express.git"
+  },
+  "homepage": "https://github.com/prashantdevelopment/instant-express#readme",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "fs-extra": "^11.3.5",
+    "inquirer": "^14.0.2",
+    "ora": "^9.4.0"
+  }
+}
