@@ -146,7 +146,7 @@ async function main() {
     { template: 'app.js', target: 'app.js' },
     { template: 'config/db.js', target: 'config/db.js' },
     { template: '.env.example', target: '.env.example' },
-    { template: '.gitignore', target: '.gitignore' },
+    { template: 'gitignore', target: '.gitignore' },
   ];
 
   for (const file of coreFiles) {
