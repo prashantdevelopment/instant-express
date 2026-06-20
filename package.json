@@ -1,6 +1,6 @@
 {
   "name": "instant-express",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool to instantly generate a production-ready Express.js + MongoDB backend with optional JWT authentication, folder structure, and auto dependency installation",
   "main": "index.js",
   "bin": {
