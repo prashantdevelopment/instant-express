@@ -1,7 +1,7 @@
 {
   "name": "instant-express",
-  "version": "1.0.1",
-  "description": "CLI tool to instantly generate a production-ready Express.js + MongoDB backend with optional JWT authentication, folder structure, and auto dependency installation",
+  "version": "2.0.0",
+  "description": "One command to generate a production-ready Express 5 backend — JavaScript or TypeScript, MongoDB, JWT auth, security, tests and Docker",
   "main": "index.js",
   "bin": {
     "instant-express": "index.js"
@@ -29,7 +29,11 @@
     "api",
     "express-generator",
     "create-backend",
-    "project-generator"
+    "project-generator",
+    "typescript",
+    "express5",
+    "docker",
+    "create-express-app"
   ],
   "author": "Prashant <imprashant16006@gmail.com> (https://github.com/prashantdevelopment)",
   "license": "MIT",
@@ -39,9 +43,9 @@
   },
   "homepage": "https://github.com/prashantdevelopment/instant-express#readme",
   "dependencies": {
-    "chalk": "^5.6.2",
-    "fs-extra": "^11.3.5",
-    "inquirer": "^14.0.2",
-    "ora": "^9.4.0"
+    "inquirer": "^14.2.3"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
