@@ -1,258 +1,248 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { parseArgs, styleText } from 'node:util';
 import inquirer from 'inquirer';
-import chalk from 'chalk';
-import ora from 'ora';
-import fs from 'fs-extra';
-import path from 'path';
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
 
-const projectName = process.argv[2];
+const TEMPLATES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'templates');
 
-// ES modules support for __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Versions installed in generated projects — bump them here
+const VERSIONS = {
+  express: '^5.3.0',
+  helmet: '^8.3.0',
+  cors: '^2.8.6',
+  morgan: '^1.12.1',
+  'express-rate-limit': '^8.7.1',
+  mongoose: '^9.11.2',
+  bcryptjs: '^3.0.3',
+  jsonwebtoken: '^9.0.3',
+  'cookie-parser': '^1.4.7',
+  supertest: '^7.3.1',
+  typescript: '^7.0.2',
+  tsx: '^4.23.15',
+  '@types/node': '^22.0.0',
+  '@types/express': '^5.0.6',
+  '@types/cors': '^2.8.19',
+  '@types/morgan': '^1.9.10',
+  '@types/jsonwebtoken': '^9.0.10',
+  '@types/cookie-parser': '^1.4.10',
+  '@types/supertest': '^7.2.1',
+};
 
-// Project name validation
-function isValidProjectName(name) {
-  const validPattern = /^[a-z0-9_-]+$/;
-  return validPattern.test(name) && name.length > 0 && name.length <= 50;
-}
+const red = (s) => styleText('red', s);
+const green = (s) => styleText('green', s);
+const cyan = (s) => styleText('cyan', s);
+const dim = (s) => styleText('dim', s);
 
-if (!projectName) {
-  console.log(chalk.red("Please provide a project name!"));
-  console.log(chalk.yellow("Usage: npx instant-express <project-name>"));
+function fail(message) {
+  console.error(red(`\n✖ ${message}\n`));
   process.exit(1);
 }
 
-if (!isValidProjectName(projectName)) {
-  console.log(chalk.red("\n Invalid project name!"));
-  console.log(chalk.yellow("Rules:"));
-  console.log(chalk.yellow("  - Only lowercase letters, numbers, hyphens (-), underscores (_)"));
-  console.log(chalk.yellow("  - No spaces allowed"));
-  console.log(chalk.yellow("  - Example: my-cool-project, backend_v2"));
-  process.exit(1);
-}
+// ---------- 1. Read the command ----------
 
-// Interactive prompts
-const questions = [
-  {
-    type: 'input',
-    name: 'port',
-    message: 'Enter port number:',
-    default: '5000',
+const { values: flags, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    yes: { type: 'boolean', short: 'y' },
+    ts: { type: 'boolean' },
+    help: { type: 'boolean', short: 'h' },
   },
-  {
-    type: 'confirm',
-    name: 'useAuth',
-    message: 'Include JWT Authentication?',
-    default: true,
-  },
-  {
-    type: 'confirm',
-    name: 'runInstall',
-    message: 'Run npm install automatically?',
-    default: true,
-  }
-];
+});
 
-// Replace placeholders with actual values in template content
-function replacePlaceholders(content, replacements) {
-  let result = content;
-  for (const [placeholder, value] of Object.entries(replacements)) {
-    // Handle commented placeholders (// {{KEY}}) as well
-    const commentedRegex = new RegExp(`//\\s*{{${placeholder}}}`, 'g');
-    if (commentedRegex.test(result)) {
-      result = result.replace(commentedRegex, value);
-    } else {
-      const regex = new RegExp(`{{${placeholder}}}`, 'g');
-      result = result.replace(regex, value);
-    }
-  }
-  return result;
+if (flags.help || !positionals[0]) {
+  console.log(`
+Usage: npx instant-express <project-name> [options]
+
+Options:
+  -y, --yes   Skip questions, use defaults (JavaScript, MongoDB, auth, tests, git)
+  --ts        Use TypeScript (with --yes)
+  -h, --help  Show this help
+`);
+  process.exit(positionals[0] ? 0 : 1);
 }
 
-// Read template file, replace placeholders, and write to target
-function processTemplate(templatePath, targetPath, replacements) {
-  const content = fs.readFileSync(
-    path.join(__dirname, 'templates', templatePath),
-    'utf-8'
-  );
-  const finalContent = replacePlaceholders(content, replacements);
-  fs.ensureFileSync(targetPath);
-  fs.writeFileSync(targetPath, finalContent);
+const projectName = positionals[0];
+if (!/^[a-z0-9][a-z0-9_-]{0,49}$/.test(projectName)) {
+  fail('Project name: lowercase letters, numbers, - and _ only (e.g. my-api)');
 }
 
-// Package.json structure for the generated project
-function createProjectPackageJson(projectName, dependencies) {
+const targetDir = path.resolve(projectName);
+if (fs.existsSync(targetDir)) fail(`Folder "${projectName}" already exists — pick another name.`);
+
+// ---------- 2. Ask what to include ----------
+
+const defaults = { language: flags.ts ? 'ts' : 'js', db: true, auth: true, extras: ['tests', 'git'], port: 5000, install: true };
+
+console.log(styleText(['blue', 'bold'], '\n⚡ instant-express\n'));
+
+const answers = flags.yes
+  ? defaults
+  : await inquirer.prompt([
+      {
+        type: 'select',
+        name: 'language',
+        message: 'Language:',
+        choices: [
+          { name: 'JavaScript', value: 'js' },
+          { name: 'TypeScript', value: 'ts' },
+        ],
+        default: defaults.language,
+      },
+      { type: 'confirm', name: 'db', message: 'Use MongoDB (Mongoose)?', default: true },
+      {
+        type: 'confirm',
+        name: 'auth',
+        message: 'Add authentication (signup, login, logout, me — JWT in httpOnly cookie)?',
+        default: true,
+        when: (a) => a.db, // users need a database
+      },
+      {
+        type: 'checkbox',
+        name: 'extras',
+        message: 'Extras:',
+        choices: [
+          { name: 'Tests (node:test + supertest)', value: 'tests', checked: true },
+          { name: 'Docker (Dockerfile + docker-compose)', value: 'docker' },
+          { name: 'Initialize a git repository', value: 'git', checked: true },
+        ],
+      },
+      {
+        type: 'number',
+        name: 'port',
+        message: 'Port:',
+        default: defaults.port,
+        validate: (p) => (Number.isInteger(p) && p > 0 && p < 65536) || 'Enter a port between 1 and 65535',
+      },
+      { type: 'confirm', name: 'install', message: 'Install dependencies now?', default: true },
+    ]);
+
+const options = {
+  ts: answers.language === 'ts',
+  js: answers.language === 'js',
+  db: answers.db,
+  auth: Boolean(answers.auth),
+  tests: answers.extras.includes('tests'),
+  docker: answers.extras.includes('docker'),
+};
+
+// ---------- 3. Copy templates ----------
+
+// Removes the lines between "@if name" and "@endif" when that option is off, then fills {{PLACEHOLDERS}}
+function render(text, vars) {
+  const kept = [];
+  const skipping = [];
+  for (const line of text.split('\n')) {
+    const ifMatch = line.match(/^\s*(?:\/\/|#)\s*@if (\w+)\s*$/);
+    if (ifMatch) skipping.push(!options[ifMatch[1]]);
+    else if (/^\s*(?:\/\/|#)\s*@endif\s*$/.test(line)) skipping.pop();
+    else if (!skipping.includes(true)) kept.push(line);
+  }
+  return kept.join('\n').replace(/{{(\w+)}}/g, (match, key) => vars[key] ?? match);
+}
+
+// npm drops dotfiles like .gitignore when publishing, so templates store them as _gitignore
+function copyFolder(folder, vars) {
+  const from = path.join(TEMPLATES, folder);
+  for (const file of fs.readdirSync(from, { recursive: true })) {
+    const source = path.join(from, file);
+    if (fs.statSync(source).isDirectory()) continue;
+    const target = path.join(targetDir, path.dirname(file), path.basename(file).replace(/^_/, '.'));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, render(fs.readFileSync(source, 'utf8'), vars));
+  }
+}
+
+const vars = {
+  PROJECT_NAME: projectName,
+  PORT: String(answers.port),
+  EXT: options.ts ? 'ts' : 'js',
+  JWT_SECRET: crypto.randomBytes(32).toString('hex'),
+};
+const lang = options.ts ? 'ts' : 'js';
+
+copyFolder('common', vars);
+copyFolder(`${lang}/base`, vars);
+if (options.db) copyFolder(`${lang}/db`, vars);
+if (options.auth) copyFolder(`${lang}/auth`, vars);
+if (options.tests) copyFolder(`${lang}/tests`, vars);
+if (options.docker) copyFolder('docker', vars);
+
+// .env gets a real random secret; .env.example (safe to commit) gets a placeholder
+const envFile = path.join(targetDir, '.env');
+fs.writeFileSync(
+  path.join(targetDir, '.env.example'),
+  fs.readFileSync(envFile, 'utf8').replace(vars.JWT_SECRET, 'replace_with_a_long_random_string'),
+);
+
+fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify(createPackageJson(), null, 2) + '\n');
+
+function createPackageJson() {
+  const pick = (...names) => Object.fromEntries(names.map((n) => [n, VERSIONS[n]]));
+  const deps = ['express', 'helmet', 'cors', 'morgan', 'express-rate-limit'];
+  const devDeps = [];
+  if (options.db) deps.push('mongoose');
+  if (options.auth) deps.push('bcryptjs', 'jsonwebtoken', 'cookie-parser');
+  if (options.tests) devDeps.push('supertest');
+  if (options.ts) {
+    devDeps.push('typescript', 'tsx', '@types/node', '@types/express', '@types/cors', '@types/morgan');
+    if (options.auth) devDeps.push('@types/jsonwebtoken', '@types/cookie-parser');
+    if (options.tests) devDeps.push('@types/supertest');
+  }
+
+  const scripts = options.ts
+    ? { dev: 'tsx watch src/server.ts', build: 'tsc', start: 'node dist/server.js' }
+    : { dev: 'node --watch src/server.js', start: 'node src/server.js' };
+  if (options.tests) scripts.test = options.ts ? 'tsx --test tests/*.test.ts' : 'node --test tests/*.test.js';
+
   return {
     name: projectName,
-    version: "1.0.0",
-    description: `${projectName} - Generated by instant-express`,
-    main: "server.js",
-    type: "module",
-    scripts: {
-      start: "node server.js",
-      dev: "nodemon server.js",
-    },
-    keywords: [],
-    author: "",
-    license: "ISC",
-    dependencies: dependencies,
-    devDependencies: {
-      nodemon: "^3.0.0",
-    },
+    version: '1.0.0',
+    private: true,
+    type: 'module',
+    scripts,
+    engines: { node: '>=22' },
+    dependencies: pick(...deps),
+    ...(devDeps.length && { devDependencies: pick(...devDeps) }),
   };
 }
 
-// Main function
-async function main() {
-  const targetDir = path.join(process.cwd(), projectName);
+console.log(green(`✔ Created ${projectName}/ (${options.ts ? 'TypeScript' : 'JavaScript'})`));
 
-  // Check if folder already exists
-  if (fs.existsSync(targetDir)) {
-    console.log(chalk.red(`\n Error: Folder "${projectName}" already exists!`));
-    console.log(chalk.yellow("Solutions:"));
-    console.log(chalk.yellow("  1. Choose a different project name"));
-    console.log(chalk.yellow("  2. Delete the existing folder: rm -rf " + projectName));
-    process.exit(1);
+// ---------- 4. Install + git ----------
+
+// Use whichever package manager ran this command (npx → npm, pnpm dlx → pnpm, ...)
+const pm = process.env.npm_config_user_agent?.split('/')[0] || 'npm';
+const run = (command) => execSync(command, { cwd: targetDir, stdio: 'inherit' });
+
+if (answers.install) {
+  console.log(dim(`\nRunning ${pm} install...\n`));
+  try {
+    run(`${pm} install`);
+  } catch {
+    console.log(red(`\nInstall failed. Run it yourself: cd ${projectName} && ${pm} install`));
   }
-
-  console.log(chalk.blue.bold("\n🚀 Instant-Express CLI\n"));
-
-  // Collect user answers
-  const answers = await inquirer.prompt(questions);
-
-  // Placeholders mapping
-  const replacements = {
-    PROJECT_NAME: projectName,
-    PORT: answers.port,
-    AUTH_IMPORT: answers.useAuth
-      ? "import authRoutes from './routes/authRoutes.js';"
-      : '// No auth routes (auth was not selected)',
-    AUTH_ROUTE: answers.useAuth
-      ? "app.use('/api/auth', authRoutes);"
-      : '// No auth routes configured',
-  };
-
-  // Create target folder
-  fs.ensureDirSync(targetDir);
-  console.log(chalk.green(`\n📁 Folder created: ${projectName}/`));
-
-  // Generate core files
-  const coreFiles = [
-    { template: 'server.js', target: 'server.js' },
-    { template: 'app.js', target: 'app.js' },
-    { template: 'config/db.js', target: 'config/db.js' },
-    { template: '.env.example', target: '.env.example' },
-    { template: 'gitignore', target: '.gitignore' },
-  ];
-
-  for (const file of coreFiles) {
-    const targetPath = path.join(targetDir, file.target);
-    processTemplate(file.template, targetPath, replacements);
-  }
-  console.log(chalk.green("✅ Core files generated!"));
-
-  // Create empty folders with .gitkeep
-  const emptyFolders = ['services', 'utils'];
-  for (const folder of emptyFolders) {
-    const folderPath = path.join(targetDir, folder);
-    fs.ensureDirSync(folderPath);
-    fs.writeFileSync(path.join(folderPath, '.gitkeep'), '');
-  }
-
-  // Define dependencies
-  const baseDependencies = {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.0",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "cookie-parser": "^1.4.6",
-    "morgan": "^1.10.0",
-  };
-
-  const authDependencies = {
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-  };
-
-  const allDependencies = answers.useAuth
-    ? { ...baseDependencies, ...authDependencies }
-    : baseDependencies;
-
-  if (answers.useAuth) {
-    const authFiles = [
-      { template: 'models/User.js', target: 'models/User.js' },
-      { template: 'controllers/authController.js', target: 'controllers/authController.js' },
-      { template: 'routes/authRoutes.js', target: 'routes/authRoutes.js' },
-      { template: 'middlewares/authMiddleware.js', target: 'middlewares/authMiddleware.js' },
-    ];
-
-    for (const file of authFiles) {
-      const targetPath = path.join(targetDir, file.target);
-      processTemplate(file.template, targetPath, replacements);
-    }
-    console.log(chalk.green("✅ Auth files generated (User model, controller, routes, middleware)!"));
-  } else {
-    console.log(chalk.yellow("ℹ️  Auth skipped."));
-    fs.ensureDirSync(path.join(targetDir, 'models'));
-    fs.ensureDirSync(path.join(targetDir, 'controllers'));
-    fs.ensureDirSync(path.join(targetDir, 'routes'));
-    fs.ensureDirSync(path.join(targetDir, 'middlewares'));
-  }
-
-  // Write package.json for generated project
-  const projectPkg = createProjectPackageJson(projectName, allDependencies);
-  const pkgPath = path.join(targetDir, 'package.json');
-  fs.writeJsonSync(pkgPath, projectPkg, { spaces: 2 });
-  console.log(chalk.green("✅ package.json created!"));
-
-  // Generate .env file
-  const envContent = `PORT=${answers.port}
-MONGO_URI=mongodb://localhost:27017/${projectName}
-${answers.useAuth ? 'JWT_SECRET=change_this_to_a_random_secret_string\nJWT_EXPIRE=7d' : ''}
-`;
-  fs.writeFileSync(path.join(targetDir, '.env'), envContent.trim());
-  console.log(chalk.green("✅ .env file created!"));
-
-  // Auto run npm install
-  if (answers.runInstall) {
-    console.log(chalk.blue("\n📦 Installing dependencies..."));
-    const spinner = ora('Running npm install...').start();
-
-    try {
-      execSync('npm install', {
-        cwd: targetDir,
-        stdio: 'pipe',
-      });
-      spinner.succeed(chalk.green('Dependencies installed successfully! ✅'));
-    } catch (error) {
-      spinner.fail(chalk.red('npm install failed! ❌'));
-      console.log(chalk.yellow("Manual fix: cd " + projectName + " && npm install"));
-    }
-  } else {
-    console.log(chalk.yellow("\nℹ️  npm install skipped."));
-    console.log(chalk.yellow(`   Run manually: cd ${projectName} && npm install`));
-  }
-
-  // Success message
-  console.log(chalk.green.bold(`\n🎉 ${projectName} successfully generated!\n`));
-  console.log(chalk.white("Next steps:"));
-  console.log(chalk.cyan(`  cd ${projectName}`));
-  if (!answers.runInstall) {
-    console.log(chalk.cyan("  npm install"));
-  }
-  console.log(chalk.cyan("  npm run dev"));
-  console.log(chalk.white("\nHappy coding! 🚀\n"));
 }
 
-main().catch((err) => {
-  console.log(chalk.red(`\n❌ Unexpected error: ${err.message}`));
-  console.log(chalk.yellow("\nIf this error persists:"));
-  console.log(chalk.yellow("  1. Check if you have write permissions"));
-  console.log(chalk.yellow("  2. Restart your terminal"));
-  console.log(chalk.yellow("  3. Open an issue on GitHub with this error message"));
-  process.exit(1);
-});
+if (answers.extras.includes('git')) {
+  try {
+    execSync('git init -q', { cwd: targetDir, stdio: 'ignore' });
+    console.log(green('✔ Git repository initialized'));
+  } catch {
+    console.log(dim('Git not found — skipped git init'));
+  }
+}
+
+// ---------- 5. Next steps ----------
+
+console.log(`
+${green('🎉 Done!')} Next steps:
+
+  ${cyan(`cd ${projectName}`)}${answers.install ? '' : `\n  ${cyan(`${pm} install`)}`}
+  ${cyan(`${pm} run dev`)}
+${options.db ? dim('\nMongoDB must be running, or put your Atlas URL in .env (MONGO_URI).') : ''}
+`);

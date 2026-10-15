@@ -1,0 +1,11 @@
+PORT={{PORT}}
+NODE_ENV=development
+# Your frontend's URL (CORS + cookies)
+CLIENT_URL=http://localhost:5173
+# @if db
+MONGO_URI=mongodb://127.0.0.1:27017/{{PROJECT_NAME}}
+# @endif
+# @if auth
+# Long random string. Generate one: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET={{JWT_SECRET}}
+# @endif

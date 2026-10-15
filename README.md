@@ -1,166 +1,160 @@
 <p align="center">
   <h1 align="center">⚡ instant-express</h1>
-  <p align="center">Generate a production-ready Express.js + MongoDB backend in seconds.</p>
+  <p align="center">One command. A production-ready Express backend — JavaScript or TypeScript.</p>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/instant-express"><img src="https://img.shields.io/npm/v/instant-express?color=blue&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/instant-express"><img src="https://img.shields.io/npm/dm/instant-express?color=green" alt="npm downloads"></a>
-  <a href="https://github.com/prashantdevelopment/gen-server/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/instant-express?color=yellow" alt="license"></a>
-  <a href="https://github.com/prashantdevelopment/gen-server"><img src="https://img.shields.io/github/stars/prashantdevelopment/gen-server?style=social" alt="GitHub stars"></a>
+  <a href="https://github.com/prashantdevelopment/instant-express/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/instant-express?color=yellow" alt="license"></a>
 </p>
 
 ---
 
 ## 🚀 Quick Start
 
-No installation needed. Just run:
-
 ```bash
-npx instant-express my-project
+npx instant-express my-api
 ```
 
-That's it! Your backend is ready. 🎉
-
----
-
-## 🎬 Demo
+Answer a few questions and your backend is ready. Skip the questions with defaults:
 
 ```bash
-$ npx instant-express my-app
+npx instant-express my-api --yes        # JavaScript
+npx instant-express my-api --yes --ts   # TypeScript
+```
 
-🚀 Instant-Express CLI
+Requires **Node.js 22+**.
 
-? Enter port number: 5000
-? Include JWT Authentication? Yes
-? Run npm install automatically? Yes
+### Demo
 
-📁 Folder created: my-app/
-✅ Core files generated!
-✅ Auth files generated (User model, controller, routes, middleware)!
-✅ package.json created!
-✅ .env file created!
-📦 Installing dependencies...
-✅ Dependencies installed successfully!
+```text
+$ npx instant-express my-api
 
-🎉 my-app successfully generated!
+⚡ instant-express
 
-Next steps:
-  cd my-app
+? Language: TypeScript
+? Use MongoDB (Mongoose)? Yes
+? Add authentication (signup, login, logout, me — JWT in httpOnly cookie)? Yes
+? Extras: Tests, Initialize a git repository
+? Port: 5000
+? Install dependencies now? Yes
+
+✔ Created my-api/ (TypeScript)
+✔ Git repository initialized
+
+🎉 Done! Next steps:
+
+  cd my-api
   npm run dev
-
-Happy coding! 🚀
 ```
 
 ---
 
-## ✨ Features
+## ⚙️ What you can choose
 
-| Feature | Description |
-|---------|-------------|
-| ⚡ **One Command Setup** | `npx instant-express my-app` — full backend ready in seconds |
-| 🔐 **Optional JWT Auth** | Signup, Login, Logout with protected routes — choose at runtime |
-| 🧠 **Smart Dependencies** | Auth packages (`bcryptjs`, `jsonwebtoken`) only install when needed |
-| 🛡️ **DNS Fix Built-in** | MongoDB Atlas DNS issues auto-resolved with Google & Cloudflare DNS |
-| 📦 **Auto npm install** | Dependencies installed automatically — skip if you prefer manual |
-| 🗂️ **MVC Architecture** | Clean folder structure — config, controllers, routes, middlewares, models, services, utils |
-| 🎯 **Interactive CLI** | No config files needed — just answer simple prompts |
-| 📝 **Auto-generated files** | `.env`, `.env.example`, `.gitignore`, `package.json` — all ready |
+| Question | Options | Default |
+|----------|---------|---------|
+| Language | JavaScript / TypeScript | JavaScript |
+| Database | MongoDB (Mongoose) or none | MongoDB |
+| Authentication | Signup, login, logout, `/me` with JWT in an httpOnly cookie | Yes |
+| Extras | Tests · Docker · git init | Tests + git |
+| Port | any | `5000` |
+| Install dependencies | yes / no | Yes |
 
----
-
-## 🎯 Generated Project Structure
-
-```
-my-project/
-├── config/
-│   └── db.js                  # MongoDB connection with DNS fix
-├── controllers/
-│   └── authController.js      # Signup, Login, Logout (if auth selected)
-├── middlewares/
-│   └── authMiddleware.js      # JWT token verification (if auth selected)
-├── models/
-│   └── User.js                # User schema with bcrypt (if auth selected)
-├── routes/
-│   └── authRoutes.js          # Auth API routes (if auth selected)
-├── services/                  # Business logic (empty — ready for you)
-├── utils/                     # Helper functions (empty — ready for you)
-├── app.js                     # Express app setup with middlewares
-├── server.js                  # Server entry point
-├── .env                       # Environment variables (auto-generated)
-├── .env.example               # Environment template for reference
-├── .gitignore                 # Git ignore rules
-└── package.json               # Project config with all dependencies
-```
+Only the packages you need are installed. Works with npm, pnpm, yarn and bun (`pnpm dlx instant-express my-api`).
 
 ---
 
-## ⚙️ CLI Options
+## ✨ What every project gets
 
-| Prompt | Description | Default |
-|--------|-------------|---------|
-| Port number | Server will run on this port | `5000` |
-| JWT Authentication | Include signup/login/logout with JWT | `Yes` |
-| Auto npm install | Install dependencies automatically | `Yes` |
-
----
-
-## 🛡️ MongoDB DNS Fix (Built-in)
-
-Many developers face `querySrv ESERVFAIL` or `ENOTFOUND` errors when connecting to **MongoDB Atlas** — especially on certain ISPs.
-
-instant-express **automatically configures** reliable DNS resolvers in the generated `db.js`:
-
-```javascript
-import dns from 'dns';
-dns.setServers(['1.1.1.1', '8.8.8.8']); // Cloudflare + Google DNS
-```
-
-No more connection issues. It just works. ✅
+| | |
+|---|---|
+| **Express 5** | Async errors handled automatically — no try/catch in every controller |
+| **Security** | `helmet` headers, CORS locked to your frontend, rate limiting, 100kb body limit |
+| **Error handling** | One error middleware, clean JSON errors, no stack traces leaked |
+| **Env config** | One `config/env` file, fails fast if a required variable is missing |
+| **Graceful shutdown** | Closes the server and DB cleanly on deploy/restart |
+| **Logging** | `morgan` request logs |
+| **Auth (optional)** | bcrypt hashing, httpOnly cookie, stricter rate limit on login/signup, auto-generated JWT secret |
+| **Tests (optional)** | `node:test` + `supertest`, runs without a database |
+| **Docker (optional)** | `Dockerfile` + `docker-compose.yml` (with MongoDB) |
 
 ---
 
-## 🚀 After Generation
+## 🗂️ Generated structure
 
-```bash
-cd my-project
-npm run dev
+```
+my-api/
+├── src/
+│   ├── server.js            # starts server, connects DB, graceful shutdown
+│   ├── app.js               # middlewares + routes
+│   ├── config/
+│   │   ├── env.js           # all env variables in one place
+│   │   └── db.js            # MongoDB connection (Atlas DNS fix built in)
+│   ├── controllers/authController.js
+│   ├── middlewares/
+│   │   ├── authMiddleware.js   # protect — requires login
+│   │   └── errorMiddleware.js  # 404 + error handler
+│   ├── models/User.js
+│   ├── routes/authRoutes.js
+│   └── utils/AppError.js    # throw new AppError(404, 'Not found')
+├── tests/app.test.js
+├── .env / .env.example
+├── Dockerfile / docker-compose.yml
+└── package.json
 ```
 
-**Output:**
-```
-✅ MongoDB Connected: localhost
-🚀 Server running on port 5000
-```
+TypeScript projects have the same structure with `.ts` files and a `tsconfig.json`.
 
-### API Endpoints (if auth selected)
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/signup` | Register a new user |
-| POST | `/api/auth/login` | Login and get JWT token |
-| POST | `/api/auth/logout` | Logout (protected route) |
+## 🔌 API (with auth)
+
+| Method | Route | |
+|--------|-------|---|
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/signup` | `{ name, email, password }` |
+| POST | `/api/auth/login` | `{ email, password }` |
+| POST | `/api/auth/logout` | Clears the cookie |
+| GET | `/api/auth/me` | Logged-in user |
+
+Frontend requests need `credentials: 'include'` (fetch) or `withCredentials: true` (axios), and `CLIENT_URL` in `.env` set to your frontend URL.
+
+---
+
+## 📜 Scripts in the generated project
+
+| | JavaScript | TypeScript |
+|---|---|---|
+| `npm run dev` | `node --watch` | `tsx watch` |
+| `npm run build` | — | `tsc` → `dist/` |
+| `npm start` | `node src/server.js` | `node dist/server.js` |
+| `npm test` | `node --test` | `tsx --test` |
+
+---
+
+## 🛡️ MongoDB Atlas DNS fix
+
+`querySrv ECONNREFUSED` / `ESERVFAIL` on some ISPs? For `mongodb+srv://` URLs the generated `db.js` uses Cloudflare + Google DNS automatically.
+
+---
+
+## 🔄 Upgrading from v1
+
+v2 is a new generator; projects created with v1 keep working as they are. What changed for new projects:
+
+- Code lives in `src/`, built on **Express 5** and **Mongoose 9**
+- Auth uses an **httpOnly cookie** (v1 returned the token in the response body) and adds `GET /api/auth/me`
+- `dotenv` and `nodemon` replaced by Node's built-in `process.loadEnvFile()` and `node --watch`
+- New: TypeScript, security middleware, tests and Docker options
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome!
-
-1. Fork the repo
-2. Create your branch (`git checkout -b feature/awesome-feature`)
-3. Commit changes (`git commit -m 'Add awesome feature'`)
-4. Push (`git push origin feature/awesome-feature`)
-5. Open a Pull Request
-
----
+Issues and pull requests are welcome.
 
 ## 📄 License
 
 MIT © [Prashant](https://github.com/prashantdevelopment)
-
----
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/prashantdevelopment">Prashant</a>
-</p>
